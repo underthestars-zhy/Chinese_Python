@@ -11,13 +11,39 @@ import time
 logging.basicConfig(level=logging.DEBUG, format=' %(levelname)s - %(asctime)s - %(message)s')
 
 
-logging.disable(logging.CRITICAL)
+# logging.disable(logging.CRITICAL)
 
 def indentation(code_str):
     indentation_finder = re.compile(r'^(\s*)?(.*)')
     code_in = indentation_finder.search(code_str)
     indentation_num = int((len(code_in[1])) / 4)
     return [indentation_num, code_in[2]]
+
+
+def cpy_while(code_str, file_name, indentation):
+    if code_str.startswith('当') and '时执行' in code_str:
+        code_str = code_str.replace('时执行', '')
+        code_str = code_str.replace('大于等于', ' >= ')
+        code_str = code_str.replace('小于等于', ' <= ')
+        code_str = code_str.replace('大于', ' > ')
+        code_str = code_str.replace('小于', ' < ')
+        code_str = code_str.replace('不等于', '!=')
+        code_str = code_str.replace('等于', ' == ')
+        code_str = code_str.replace('且', ' and ')
+        code_str = code_str.replace('或', ' or ')
+        code_str = code_str.replace('真', ' True ')
+        code_str = code_str.replace('假', ' False ')
+        code_str = code_str.replace('为', ' == ')
+        code_str = code_str.replace('在', ' in ')
+        code_str = code_str.replace('不在', ' not in ')
+        code_str = code_str.replace('不为', ' not ')
+        code_str = code_str.replace('：', ':')
+        code_str = code_str.replace('变量', '_')
+        logging.debug(f'while循环预编译: {code_str}')
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + 'while ' + code_str[1:] + "\n")
+        file_code.close()
+        return True
 
 
 def cpy_import(code_str, file_name, indentation):
@@ -38,6 +64,8 @@ def cpy_import(code_str, file_name, indentation):
             file_code.write(indentation * '    ' + code_str + "\n")
             file_code.close()
             return True
+    else:
+        return False
 
 def cpy_conversion(code_str, file_name, indentation):
     if code_str.startswith('格式化'):
@@ -100,6 +128,42 @@ def cpy_math(code_str, file_name, indentation):
         logging.debug(f'计算代码为: {code_str}')
         file_code = open(file_name, 'a')
         file_code.write(indentation * '    ' + code_str[2:] + "\n")
+        file_code.close()
+        return True
+    elif '自加' in code_str:
+        values_re = re.compile(r'变量(\w+)')
+        code_str = code_str.replace('自加', ' += ')
+        code_str = values_re.sub(r'_\1', code_str)
+        logging.debug(f'计算代码为: {code_str}')
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + code_str + "\n")
+        file_code.close()
+        return True
+    elif '自减' in code_str:
+        values_re = re.compile(r'变量(\w+)')
+        code_str = code_str.replace('自减', ' -= ')
+        code_str = values_re.sub(r'_\1', code_str)
+        logging.debug(f'计算代码为: {code_str}')
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + code_str + "\n")
+        file_code.close()
+        return True
+    elif '自乘' in code_str:
+        values_re = re.compile(r'变量(\w+)')
+        code_str = code_str.replace('自乘', ' *= ')
+        code_str = values_re.sub(r'_\1', code_str)
+        logging.debug(f'计算代码为: {code_str}')
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + code_str + "\n")
+        file_code.close()
+        return True
+    elif '自除' in code_str:
+        values_re = re.compile(r'变量(\w+)')
+        code_str = code_str.replace('自除', ' /= ')
+        code_str = values_re.sub(r'_\1', code_str)
+        logging.debug(f'计算代码为: {code_str}')
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + code_str + "\n")
         file_code.close()
         return True
     else:
@@ -294,6 +358,9 @@ if __name__ == '__main__':
                 logging.info('写入成功')
                 continue
             elif cpy_import(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
+                logging.info('写入成功')
+                continue
+            elif cpy_while(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
                 logging.info('写入成功')
                 continue
             else:
