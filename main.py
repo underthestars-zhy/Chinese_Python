@@ -22,13 +22,22 @@ def indentation(code_str):
 
 def cpy_import(code_str, file_name, indentation):
     if code_str.startswith('导入模块'):
-        code_str = code_str.replace('导入模块', 'import ')
-        code_str = code_str.replace('，', ', ')
-        logging.debug(f"导入模块预写入: {code_str}")
-        file_code = open(file_name, 'a')
-        file_code.write(indentation * '    ' + code_str + "\n")
-        file_code.close()
-        return True
+        if '重命名为' in code_str and '，' not in code_str:
+            code_str = code_str.replace('导入模块', 'import ')
+            code_str = code_str.replace('重命名为', ' as ')
+            logging.debug(f"导入模块预写入: {code_str}")
+            file_code = open(file_name, 'a')
+            file_code.write(indentation * '    ' + code_str + "\n")
+            file_code.close()
+            return True
+        else:
+            code_str = code_str.replace('导入模块', 'import ')
+            code_str = code_str.replace('，', ', ')
+            logging.debug(f"导入模块预写入: {code_str}")
+            file_code = open(file_name, 'a')
+            file_code.write(indentation * '    ' + code_str + "\n")
+            file_code.close()
+            return True
 
 def cpy_conversion(code_str, file_name, indentation):
     if code_str.startswith('格式化'):

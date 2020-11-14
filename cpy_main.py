@@ -1,3 +1,4 @@
+import random as rd
 _a = input("请输入第一个数：")
 _b = input("请输入第二个数：")
 _c = input("请输入第三个数：")
