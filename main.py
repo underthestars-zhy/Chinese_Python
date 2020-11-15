@@ -11,7 +11,13 @@ import time
 logging.basicConfig(level=logging.DEBUG, format=' %(levelname)s - %(asctime)s - %(message)s')
 
 
-# logging.disable(logging.CRITICAL)
+logging.disable(logging.CRITICAL)
+
+
+def version():
+    release = 0.1
+    python = '3.7-3.10'
+    return '编译器版本: v' + str(release) + '\n' + '支持的Python版本: ' + python + '\n'
 
 def indentation(code_str):
     indentation_finder = re.compile(r'^(\s*)?(.*)')
@@ -20,8 +26,63 @@ def indentation(code_str):
     return [indentation_num, code_in[2]]
 
 
+def cpy_in_model(code_str, file_name, indentation):
+    if code_str == '退出循环':
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + 'break' + "\n")
+        file_code.close()
+        return True
+    elif code_str == '重置循环':
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + 'return' + "\n")
+        file_code.close()
+        return True
+    elif code_str == '退出程序':
+        file_code = open(file_name, 'a')
+        file_code.write(indentation * '    ' + 'import sys' + "\n")
+        file_code.write(indentation * '    ' + 'sys.exit()' + "\n")
+        file_code.close()
+        return True
+    else:
+        return False
+
+
+def cpy_use_model(code_str, indentation):
+    if code_str.startswith('使用模块') and '中的' in code_str:
+        if '参数为' in code_str:
+            code_str = code_str.replace('使用模块', '')
+            code_str = code_str.replace('，', ',')
+            code_str = code_str.replace('中的', '.')
+            code_str = code_str.replace('参数为', '(')
+            code_str = indentation * '    ' + code_str + ')'
+            return code_str
+        else:
+            code_str = code_str.replace('使用模块', '')
+            code_str = code_str.replace('，', ',')
+            code_str = code_str.replace('中的', '.')
+            code_str = indentation * '    ' + code_str + '()'
+            return code_str
+    elif '使用模块' in code_str and '中的' in code_str:
+        if '参数为' in code_str:
+            code_str = code_str.replace('使用模块', '')
+            code_str = code_str.replace('，', ',')
+            code_str = code_str.replace('中的', '.')
+            code_str = code_str.replace('参数为', '(')
+            code_str = code_str + ')'
+            return code_str
+        else:
+            code_str = code_str.replace('使用模块', '')
+            code_str = code_str.replace('，', ',')
+            code_str = code_str.replace('中的', '.')
+            code_str = code_str + '()'
+            return code_str
+    else:
+        return code_str
+
+
+
 def cpy_while(code_str, file_name, indentation):
-    if code_str.startswith('当') and '时执行' in code_str:
+    if code_str[0] == '当' and '时执行' in code_str:
         code_str = code_str.replace('时执行', '')
         code_str = code_str.replace('大于等于', ' >= ')
         code_str = code_str.replace('小于等于', ' <= ')
@@ -44,6 +105,8 @@ def cpy_while(code_str, file_name, indentation):
         file_code.write(indentation * '    ' + 'while ' + code_str[1:] + "\n")
         file_code.close()
         return True
+    else:
+        return False
 
 
 def cpy_import(code_str, file_name, indentation):
@@ -70,6 +133,15 @@ def cpy_import(code_str, file_name, indentation):
 def cpy_conversion(code_str, file_name, indentation):
     if code_str.startswith('格式化'):
         if '保存到' in code_str:
+            find_re = re.compile(r'格式化(.*)为(字符串|浮点数|整数)保存到(.*)', re.DOTALL)
+            code_str = find_re.sub(r'\3 = \2(\1)', code_str)
+            code_str = code_str.replace('字符串', 'str')
+            code_str = code_str.replace('浮点数', 'float')
+            code_str = code_str.replace('整数', 'int')
+            code_str = code_str.replace('变量', '_')
+            file_code = open(file_name, 'a')
+            file_code.write(indentation * '    ' + code_str + "\n")
+            file_code.close()
             return True
         else:
             find_re  = re.compile(r'格式化(.*)为(字符串|浮点数|整数)', re.DOTALL)
@@ -174,6 +246,8 @@ def create_variable(code_str, file_name, indentation):
     if code_str.startswith('创建变量'):
         if '值为' in code_str or '为' in code_str:
             input_re = re.compile(r'用户输入((\"|\')+.*(\"|\')+)?')
+            code_str = code_str.replace('真', ' True ')
+            code_str = code_str.replace('假', ' False ')
             code_str = input_re.sub(r'input(\1)', code_str)
             i = 0
             flag = True
@@ -194,6 +268,8 @@ def create_variable(code_str, file_name, indentation):
     elif code_str.startswith('更新变量'):
         if '值为' in code_str:
             input_re = re.compile(r'用户输入(\"|\'.*\"|\')?')
+            code_str = code_str.replace('真', ' True ')
+            code_str = code_str.replace('假', ' False ')
             code_str = input_re.sub(r'input(\1)', code_str)
             i = 0
             flag = True
@@ -288,6 +364,8 @@ if __name__ == '__main__':
     true_file_lists = []
     true_files_re = re.compile(r'^cpy_(\w+).txt$')
 
+    print(version())
+
     print("开始搜寻编译文件……")
     logging.info(f"当前文件列表{file_lists_str}")
 
@@ -333,6 +411,7 @@ if __name__ == '__main__':
         i = 1
         file_write_name = file_name.split('.')[0] + '.py'
         logging.debug(f'当前预编译文件名称为{file_write_name}')
+        line = 0
         for code in code_list:
             if code == '\n':
                 print(f'Line{i}: 不能输入空白行')
@@ -342,7 +421,18 @@ if __name__ == '__main__':
             logging.info(
                 "当前返回的缩进数量为" + str(code_indentation_code_txt_list[0]) + ", 代码文本为{" + str(
                     code_indentation_code_txt_list[1]) + "}...")
-            if cpy_print(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
+            the_test = ''
+            if code_indentation_code_txt_list[1] == '-测试-':
+                the_test = f'|TestLine{line}'
+                break
+            else:
+                line += 1
+            code_indentation_code_txt_list[1] = cpy_use_model(
+                code_indentation_code_txt_list[1], file_write_name)
+            if cpy_in_model(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
+                logging.info('写入成功')
+                continue
+            elif cpy_print(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
                 logging.info('写入成功')
                 continue
             elif create_variable(code_indentation_code_txt_list[1], file_write_name, code_indentation_code_txt_list[0]):
@@ -373,10 +463,11 @@ if __name__ == '__main__':
     time.sleep(1)
     print('输出编译后文件内容...')
     time.sleep(1)
-    print("\n"+compile_file_name.center(23, '*'))
-    print("***********************\n")
+    tittle_name = f'{compile_file_name}{the_test}'
+    print("\n"+tittle_name.center(29, '*'))
+    print("*****************************\n")
 
     os.system('python3 ' + compile_file_name)
 
-    print("\n***********************\n***********************\n")
+    print("\n*****************************\n*****************************\n")
     print('Done.')
